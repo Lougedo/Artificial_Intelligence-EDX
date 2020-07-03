@@ -91,9 +91,39 @@ def shortest_path(source, target):
 
     If no possible path, returns None.
     """
+    root = Node(state=source, parent=None, action=None, depth=0)
+    frontier = QueueFrontier()
+    frontier.add(root)
 
-    # TODO
-    raise NotImplementedError
+    explored = set()
+
+    while True:
+        # Check if empty (if empty, no solution possible)
+        if frontier.empty():
+            return None
+        
+        # Extract first node
+        node = frontier.remove()
+
+        # Check if its target node,and if it is, return the solution
+        if target == node.state:
+            path = []
+            while node.parent is not None:
+                path.append((node.action, node.state)) 
+                node = node.parent
+            path.reverse()
+            return path
+
+        # If not, we mark it as explored. We wont want to explore any of the ones on te explored
+        # list, as we are doing Breath Search, so any path to point X from point Y will already 
+        # be the shortest
+        explored.add(node.state)
+        
+        # And we add its neighbors/childs to the frontier
+        neighbors = neighbors_for_person(node.state)
+        for n in neighbors:
+            if n[1] not in explored and not frontier.contains_state(n[1]) and node.depth < 7:
+                frontier.add(Node(state=n[1], parent=node, action=n[0], depth=node.depth+1))
 
 
 def person_id_for_name(name):
