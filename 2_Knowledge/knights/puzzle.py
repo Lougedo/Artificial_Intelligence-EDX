@@ -58,8 +58,8 @@ knowledge2 = And(
 sentence_3A = Or(
         AKnight,
         AKnave)
-# B says "A said 'I am a knave'."     <-- I'm understanding B says that A literally said that
-# B says "C is a knave."
+# B says "A said 'I am a knave'."     <-- I'm understanding B says that A literally said that,
+# B says "C is a knave."                  and not that A says B is a knave
 sentence_3B = And(
     Biconditional(AKnight, AKnave),
     CKnave)
