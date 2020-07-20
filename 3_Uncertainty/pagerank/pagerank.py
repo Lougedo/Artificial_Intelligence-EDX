@@ -90,22 +90,32 @@ def sample_pagerank(corpus, damping_factor, n):
     their estimated PageRank value (a value between 0 and 1). All
     PageRank values should sum to 1.
     """
-    # First sample
+    # First sample, random choice
     actual_page = random.choice(list(corpus.keys()))
+    # We create the dict with same keys as the corpus and default value 0, to add later
     pagerank = dict.fromkeys(corpus.keys(), 0)
+    # We calculate one time (so that we don't do it N times) the probability added each landing
     probability_added = 1 / n
-
+    # Now we iterate N times, jumping from page to page and adding the probability in each jump
+    pagerank[actual_page] += probability_added
     i = 0
     while i < n:
-        pagerank[actual_page] += probability_added
+        # Get the transition model
         probabilities = transition_model(corpus, actual_page, damping_factor)
-        index = -1
+        # To ease its use, we get a list of values
         probabilities_values = list(probabilities.values())
+        # This way, we will iterate through them and then, get a random value with a seed, depending 
+        # on the range the seed ends (the list makes easier this proccess)
+        index = 0
         seed = random.random()
         while seed > 0:
-            index += 1
             seed -= probabilities_values[index]
-        actual_page = list(probabilities.keys())[index]
+            index += 1
+        # We set the actual page to the page where the seed got to 0 or least
+        actual_page = list(probabilities.keys())[index-1]
+        # Add its new probability
+        pagerank[actual_page] += probability_added
+        # And loop again
         i += 1
 
     return pagerank
