@@ -187,30 +187,31 @@ class MinesweeperAI():
         known_mines = 0
         row, col = cell
         for i in range(row-1, row+2):
-            if self.height >= i >= 0:
+            if self.height > i >= 0:
                 for j in range(col-1, col+2):
-                    if self.width >= j >= 0 and cell not in self.moves_made and (i, j) != cell:
-                        if (i, j) in self.mines:
-                            known_mines += 1
-                        neighbours.add((i, j))
+                    if self.width > j >= 0:
+                        if (i, j) not in self.moves_made and (i, j) != cell:
+                            if (i, j) in self.mines:
+                                known_mines += 1
+                            neighbours.add((i, j))
         return neighbours, known_mines
 
     def check_sentences_rec(self, sentences, new_sentences = list(), sentence_num = 0):
         if len(sentences) == 0 or sentence_num > len(sentences)-1: 
             return new_sentences
         actual_sentence = sentences[sentence_num]
-        
+
         # Inferring method 1: same cells as count / no near bombs (clears sentences)
-        if actual_sentence.known_mines is not None:
+        if len(actual_sentence.known_mines()) > 0:
             for cell in actual_sentence.cells:
                 self.mines.add(cell)
                 sentences.remove(actual_sentence)
-                self.check_sentences_rec(sentences, new_sentences, sentence_num)
-        if actual_sentence.known_safes is not None:
+                return self.check_sentences_rec(sentences, new_sentences, sentence_num)
+        if len(actual_sentence.known_safes()) > 0:
             for cell in actual_sentence.cells:
                 self.safes.add(cell)
                 sentences.remove(actual_sentence)
-                self.check_sentences_rec(sentences, new_sentences, sentence_num)
+                return self.check_sentences_rec(sentences, new_sentences, sentence_num)
 
         # Inferring method 2: subset in the remaining sentences (adds new sentences)
         for sentence in sentences:
@@ -228,7 +229,7 @@ class MinesweeperAI():
                 new_cells = superset.cells - subset.cells
                 new_sentences.append(Sentence(new_cells, new_mines))
 
-        self.check_sentences_rec(sentences, new_sentences, sentence_num + 1)
+        return self.check_sentences_rec(sentences, new_sentences, sentence_num + 1)
 
     def add_knowledge(self, cell, count):
         """
@@ -252,13 +253,14 @@ class MinesweeperAI():
         self.mark_safe(cell)
 
         # Step 3
-        # We get the neighbours and the amount of known mines
+        # We get the neighbours and the amount of known mines nearby
         neighbours, visible_mines = self.get_neighbours(cell)
-        # We use the updated number of mines (not known mines)
-        new_sentence = Sentence(neighbours, count - visible_mines)
+        # We use the updated number of mines (in other words, not known mines)
+        if len(neighbours) > 0:
+            new_sentence = Sentence(neighbours, count - visible_mines)
         # We add it to the knowledge base (unless, for some reason, its already on it, but it shouldn't)
-        if new_sentence not in self.knowledge:
-            self.knowledge.append(new_sentence)
+            if new_sentence not in self.knowledge:
+                self.knowledge.append(new_sentence)
 
         # Step 4
         for sentence in self.knowledge:
@@ -282,8 +284,6 @@ class MinesweeperAI():
             for sentence in new_sentences:
                 if sentence not in self.knowledge:
                     self.knowledge.append(sentence)
-                    
-
         return
 
     def make_safe_move(self):
@@ -296,9 +296,13 @@ class MinesweeperAI():
         and self.moves_made, but should not modify any of those values.
         """
         # Doesn't mind the element chosen as we are not looking forward to be efficient (not yet)
-        if len(self.safes) == 0:
-            return None
-        return random.choice(tuple(self.safes))
+        chosen = None
+        for cell in self.safes:
+            if cell not in self.moves_made:
+                chosen = cell
+                break
+
+        return chosen
 
     def make_random_move(self):
         """
@@ -308,17 +312,16 @@ class MinesweeperAI():
             2) are not known to be mines
         """
         # We will try to look for the safest move possible (the least failure %)
-        cell_chance = 1
+        cell_chance = 1.00
         chosen = None
         for sentence in self.knowledge:
-            failure_chance = sentence.count / len(sentence.cells) 
+            failure_chance = sentence.count / (len(sentence.cells))
             if cell_chance > failure_chance:
-                chosen = sentence.cells[0]
-                if chosen in self.moves_made | self.mines:
-                    i = 0
-                    while chosen in self.moves_made | self.mines:
-                        i += 1
-                        chosen = sentence.cells[i]
+                for cell in sentence.cells:
+                    if cell not in self.moves_made | self.mines:
+                        chosen = cell
+                        break
+
         if chosen is None:
             for i in range(0, self.width):
                 for j in range (0, self.height):
