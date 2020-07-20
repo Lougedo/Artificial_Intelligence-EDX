@@ -202,16 +202,18 @@ class MinesweeperAI():
         actual_sentence = sentences[sentence_num]
 
         # Inferring method 1: same cells as count / no near bombs (clears sentences)
-        if len(actual_sentence.known_mines()) > 0:
-            for cell in actual_sentence.cells:
-                self.mines.add(cell)
-                sentences.remove(actual_sentence)
-                return self.check_sentences_rec(sentences, new_sentences, sentence_num)
-        if len(actual_sentence.known_safes()) > 0:
-            for cell in actual_sentence.cells:
-                self.safes.add(cell)
-                sentences.remove(actual_sentence)
-                return self.check_sentences_rec(sentences, new_sentences, sentence_num)
+        known_mines = actual_sentence.known_mines()
+        if len(known_mines) > 0:
+            sentences.remove(actual_sentence)
+            for cell in known_mines:
+                self.mark_mine(cell)
+            return self.check_sentences_rec(sentences, new_sentences, sentence_num)
+        known_safes = actual_sentence.known_safes()
+        if len(known_safes) > 0:
+            sentences.remove(actual_sentence)
+            for cell in known_safes:
+                self.mark_safe(cell)
+            return self.check_sentences_rec(sentences, new_sentences, sentence_num)
 
         # Inferring method 2: subset in the remaining sentences (adds new sentences)
         for sentence in sentences:
@@ -246,6 +248,7 @@ class MinesweeperAI():
             5) add any new sentences to the AI's knowledge base
                if they can be inferred from existing knowledge
         """
+        print("Move " + str(cell) + " was played.")
         # Step 1
         self.moves_made.add(cell)
 
@@ -284,6 +287,9 @@ class MinesweeperAI():
             for sentence in new_sentences:
                 if sentence not in self.knowledge:
                     self.knowledge.append(sentence)
+        if len(self.mines) + len(self.moves_made) == self.height*self.width:
+            print("Game ended! All mines have been found!")
+        
         return
 
     def make_safe_move(self):
@@ -298,7 +304,7 @@ class MinesweeperAI():
         # Doesn't mind the element chosen as we are not looking forward to be efficient (not yet)
         chosen = None
         for cell in self.safes:
-            if cell not in self.moves_made:
+            if cell not in self.moves_made and cell not in self.mines:
                 chosen = cell
                 break
 
@@ -315,7 +321,7 @@ class MinesweeperAI():
         cell_chance = 1.00
         chosen = None
         for sentence in self.knowledge:
-            failure_chance = sentence.count / (len(sentence.cells))
+            failure_chance = sentence.count / (len(sentence.cells)+1) # +1 in order not to allow division by 0
             if cell_chance > failure_chance:
                 for cell in sentence.cells:
                     if cell not in self.moves_made | self.mines:
