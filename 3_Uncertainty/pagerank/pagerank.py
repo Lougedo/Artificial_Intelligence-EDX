@@ -125,6 +125,14 @@ def sample_pagerank(corpus, damping_factor, n):
     return pagerank
 
 
+def summation(corpus, corpus_page, pagerank):
+    result = 0
+    for page in corpus:
+        if corpus_page in corpus.get(page):
+            result += pagerank[page] / len(corpus[page])
+    return result
+
+
 def iterate_pagerank(corpus, damping_factor):
     """
     Return PageRank values for each page by iteratively updating
@@ -134,7 +142,25 @@ def iterate_pagerank(corpus, damping_factor):
     their estimated PageRank value (a value between 0 and 1). All
     PageRank values should sum to 1.
     """
-    raise NotImplementedError
+    # We create the dict with same keys as the corpus and default value 0, to add later each probability
+    pagerank = dict.fromkeys(corpus.keys(), 1 / len(corpus))
+    aux_pagerank = dict.fromkeys(corpus.keys(), 0)
+    highest_change = 1
+    # We iterate through all the corpus pages, while the change is less than 0.001
+    while highest_change > 0.001:
+        for corpus_page in corpus:
+            # We first add the "base" probability
+            aux_pagerank[corpus_page] = ((1 - damping_factor) / len(corpus)) + (damping_factor * summation(corpus, corpus_page, pagerank))
+        # We check for the highest change value
+        highest_change = 0
+        for page in pagerank:
+            change = abs(pagerank[page] - aux_pagerank[page])
+            if change > highest_change:
+                highest_change = change
+        # Finally we update the pagerank
+        pagerank.update(aux_pagerank)
+    return pagerank
+
 
 
 if __name__ == "__main__":
