@@ -73,10 +73,14 @@ def transition_model(corpus, page, damping_factor):
     # Amount of pages linked to the given page
     number_of_page_links = len(page_links)
     # Probability of traviling to one of those pages from the given page
-    extra_probability = damping_factor / number_of_page_links
-    # We add the probability to each page
-    for link in page_links:
-        probabilities[link] += extra_probability
+    if number_of_page_links > 0:
+        extra_probability = damping_factor / number_of_page_links
+        # We add the probability to each page
+        for link in page_links:
+            probabilities[link] += extra_probability
+    # If there are no links, we equilibrate the probability
+    else:
+        probabilities = dict.fromkeys(corpus.keys(), 1/number_of_pages)
 
     return probabilities
 
