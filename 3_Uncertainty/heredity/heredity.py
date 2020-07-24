@@ -128,6 +128,15 @@ def powerset(s):
     ]
 
 
+def parent_prob(people, one_gene, two_genes, parent):
+    if parent in one_gene:
+        return (1 - PROBS['mutation']) * 0.5
+    elif parent in two_genes:
+        return 1 - PROBS['mutation']
+    else:
+        return PROBS['mutation']
+
+
 def joint_probability(people, one_gene, two_genes, have_trait):
     """
     Compute and return a joint probability.
@@ -139,8 +148,44 @@ def joint_probability(people, one_gene, two_genes, have_trait):
         * everyone in set `have_trait` has the trait, and
         * everyone not in set` have_trait` does not have the trait.
     """
-    # TODO
-    raise NotImplementedError
+    probability = 1.0
+    """For example, if the family consists of Harry, James, and Lily, then calling this function 
+    where one_gene = {"Harry"}, two_genes = {"James"}, and trait = {"Harry", "James"} should 
+    calculate the probability that Lily has zero copies of the gene, Harry has one copy of the 
+    gene, James has two copies of the gene, Harry exhibits the trait, James exhibits the trait, 
+    and Lily does not exhibit the trait."""
+    # Considerations: 
+        # I'm assuming people can only be in one group, if else it would be nonsense
+        # I'm treating people with only one listed parent as if there were no listed parents
+    for person in people.values():
+        mother = person['mother']
+        father = person['father']
+        mother_prob = parent_prob(people, one_gene, two_genes, mother)
+        father_prob = parent_prob(people, one_gene, two_genes, father)
+        if person['name'] in one_gene:
+            genes_amount = 1
+            if mother is None or father is None:
+                probability *= PROBS['gene'][1]
+            else:
+                # Probability of getting one gene from either of both parents but not both
+                probability *= (mother_prob * (1 - father_prob)) + (father_prob * (1- mother_prob))
+        elif person['name'] in two_genes:
+            genes_amount = 2
+            if mother is None or father is None:
+                probability *= PROBS['gene'][2]
+            else:
+                probability *= mother_prob * father_prob
+        elif person['name'] not in one_gene.union(two_genes):
+            genes_amount = 0
+            if mother is None or father is None:
+                probability *= PROBS['gene'][0]
+            else:
+                probability *= (1 - mother_prob) * (1 - father_prob)
+        if person['name'] in have_trait:
+            probability *= PROBS['trait'][genes_amount][True]
+        else:
+            probability *= PROBS['trait'][genes_amount][False]
+    return probability
 
 
 def update(probabilities, one_gene, two_genes, have_trait, p):
@@ -150,8 +195,18 @@ def update(probabilities, one_gene, two_genes, have_trait, p):
     Which value for each distribution is updated depends on whether
     the person is in `have_gene` and `have_trait`, respectively.
     """
-    # TODO
-    raise NotImplementedError
+    for person_prob in probabilities:
+        if person_prob in one_gene:
+            probabilities[person_prob]['gene'][1] += p
+        elif person_prob in two_genes:
+            probabilities[person_prob]['gene'][1] += p
+        else:
+            probabilities[person_prob]['gene'][1] += p
+
+        if person_prob in have_trait:
+            probabilities[person_prob]['trait'][True] += p
+        else:
+            probabilities[person_prob]['trait'][False] += p
 
 
 def normalize(probabilities):
@@ -159,8 +214,21 @@ def normalize(probabilities):
     Update `probabilities` such that each probability distribution
     is normalized (i.e., sums to 1, with relative proportions the same).
     """
-    # TODO
-    raise NotImplementedError
+    for person in probabilities:
+        total_prob = 0.0
+        # We first get the total
+        for genes_amount in range(3):
+            total_prob += probabilities[person]['gene'][genes_amount]
+        # And then update it to be 1
+        for genes_amount in range(3):
+            probabilities[person]['gene'][genes_amount] /= total_prob
+        total_prob = 0.0
+        # We first get the total
+        for genes_amount in probabilities[person]['trait']:
+            total_prob += probabilities[person]['trait'][genes_amount]
+        # And then update it to be 1
+        for genes_amount in probabilities[person]['trait']:
+            probabilities[person]['trait'][genes_amount] /= total_prob
 
 
 if __name__ == "__main__":
