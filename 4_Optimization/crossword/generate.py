@@ -114,7 +114,7 @@ class CrosswordCreator():
         False if no revision was made.
         """
         removing = []
-        overlaps = self.crossword.overlaps()[x, y]
+        overlaps = self.crossword.overlaps[x, y]
 
         if overlaps is None:
             return False
@@ -174,7 +174,25 @@ class CrosswordCreator():
         Return True if `assignment` is consistent (i.e., words fit in crossword
         puzzle without conflicting characters); return False otherwise.
         """
-        raise NotImplementedError
+        for var_1 in assignment:
+            word_1 = assignment[var_1]
+
+            if var_1.length != len(word_1):
+                return False
+
+            for var_2 in assignment:
+                word_2 = assignment[var_2]
+
+                if var_1 != var_2:
+                    if word_1 == word_2:
+                        return False
+
+                    overlap = self.crossword.overlaps[var_1, var_2]
+                    if overlap is not None:
+                        x, y = overlap
+                        if word_1[x] != word_2[y]:
+                            return False
+        return True
 
     def order_domain_values(self, var, assignment):
         """
@@ -183,7 +201,7 @@ class CrosswordCreator():
         The first value in the list, for example, should be the one
         that rules out the fewest values among the neighbors of `var`.
         """
-        raise NotImplementedError
+        return self.domains[var] # ??? Way to easy and not using assignment...
 
     def select_unassigned_variable(self, assignment):
         """
@@ -193,7 +211,10 @@ class CrosswordCreator():
         degree. If there is a tie, any of the tied variables are acceptable
         return values.
         """
-        raise NotImplementedError
+        for var in self.crossword.variables:
+            if var not in assignment.keys():
+                return var
+        return None
 
     def backtrack(self, assignment):
         """
@@ -204,8 +225,21 @@ class CrosswordCreator():
 
         If no assignment is possible, return None.
         """
-        raise NotImplementedError
+        if self.assignment_complete(assignment):
+            return assignment
 
+        var = self.select_unassigned_variable(assignment)
+
+        for value in self.order_domain_values(var, None):
+            assignment[var] = value
+            if self.consistent(assignment):
+                result = self.backtrack(assignment)
+                if result is None:
+                    assignment[var] = None
+                else:
+                    return result
+        
+        return None
 
 def main():
 
