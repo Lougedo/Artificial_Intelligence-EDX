@@ -165,20 +165,20 @@ def joint_probability(people, one_gene, two_genes, have_trait):
         if person['name'] in one_gene:
             genes_amount = 1
             if mother is None or father is None:
-                probability *= PROBS['gene'][1]
+                probability *= PROBS['gene'][genes_amount]
             else:
                 # Probability of getting one gene from either of both parents but not both
-                probability *= (mother_prob * (1 - father_prob)) + (father_prob * (1- mother_prob))
+                probability *= (mother_prob * (1 - father_prob)) + (father_prob * (1 - mother_prob))
         elif person['name'] in two_genes:
             genes_amount = 2
             if mother is None or father is None:
-                probability *= PROBS['gene'][2]
+                probability *= PROBS['gene'][genes_amount]
             else:
                 probability *= mother_prob * father_prob
-        elif person['name'] not in one_gene.union(two_genes):
+        else:
             genes_amount = 0
             if mother is None or father is None:
-                probability *= PROBS['gene'][0]
+                probability *= PROBS['gene'][genes_amount]
             else:
                 probability *= (1 - mother_prob) * (1 - father_prob)
         if person['name'] in have_trait:
@@ -199,9 +199,9 @@ def update(probabilities, one_gene, two_genes, have_trait, p):
         if person_prob in one_gene:
             probabilities[person_prob]['gene'][1] += p
         elif person_prob in two_genes:
-            probabilities[person_prob]['gene'][1] += p
+            probabilities[person_prob]['gene'][2] += p
         else:
-            probabilities[person_prob]['gene'][1] += p
+            probabilities[person_prob]['gene'][0] += p
 
         if person_prob in have_trait:
             probabilities[person_prob]['trait'][True] += p
@@ -217,10 +217,10 @@ def normalize(probabilities):
     for person in probabilities:
         total_prob = 0.0
         # We first get the total
-        for genes_amount in range(3):
+        for genes_amount in probabilities[person]['gene']:
             total_prob += probabilities[person]['gene'][genes_amount]
         # And then update it to be 1
-        for genes_amount in range(3):
+        for genes_amount in probabilities[person]['gene']:
             probabilities[person]['gene'][genes_amount] /= total_prob
         total_prob = 0.0
         # We first get the total
