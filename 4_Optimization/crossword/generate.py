@@ -99,10 +99,10 @@ class CrosswordCreator():
         (Remove any values that are inconsistent with a variable's unary
          constraints; in this case, the length of the word.)
         """
-        for v in self.crossword.variables:
+        for var in self.crossword.variables:
             for word in self.crossword.words:
-                if len(word) != v.length:
-                    self.domains[v].remove(word)
+                if len(word) != var.length:
+                    self.domains[var].remove(word)
 
     def revise(self, x, y):
         """
@@ -144,14 +144,30 @@ class CrosswordCreator():
         Return True if arc consistency is enforced and no domains are empty;
         return False if one or more domains end up empty.
         """
-        raise NotImplementedError
+        if arcs is None:
+            arcs = list()
+            for var in self.crossword.variables:
+                for neighbor_var in self.crossword.neighbors(var):
+                    arcs.append((var, neighbor_var))
+        
+        for x_var, y_var in arcs:
+            if self.revise(x_var, y_var):
+                for neighbor_var in self.crossword.neighbors(x_var):
+                    arcs.append((x_var, neighbor_var))
+        
+        return len(self.domains[x_var]) > 0
 
     def assignment_complete(self, assignment):
         """
         Return True if `assignment` is complete (i.e., assigns a value to each
         crossword variable); return False otherwise.
         """
-        raise NotImplementedError
+        for var in self.crossword.variables:
+            if var not in assignment.keys():
+                return False
+            if assignment[var] not in self.crossword.words:
+                return False
+        return True
 
     def consistent(self, assignment):
         """
