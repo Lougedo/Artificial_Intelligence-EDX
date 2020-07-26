@@ -58,7 +58,40 @@ def load_data(data_dir):
     be a list of integer labels, representing the categories for each of the
     corresponding `images`.
     """
-    raise NotImplementedError
+    images = list()
+    labels = list()
+    
+    folder_path = os.path.join(".", data_dir)
+
+    categories = [int(f) for f in os.listdir(folder_path)]
+    categories.sort()
+    for category in categories:
+        category_path = os.path.join(folder_path, str(category))
+        category_files = os.listdir(category_path)
+        for sample in category_files:
+            # Progress print
+            print(f'Now loading category {category} - File -> {sample}', end="\r", flush=True)
+            
+            sample_path = os.path.join(category_path, sample)
+
+            image = cv2.resize(cv2.imread(sample_path), (IMG_WIDTH, IMG_HEIGHT))
+            
+            # Tell error but keep going
+            if image.shape != (IMG_WIDTH, IMG_HEIGHT, 3):
+                print(f"--> SIZE ERROR - Category/file: {category}/{sample}")
+            
+            images.append(image)
+            labels.append(category)
+            
+
+    if len(images) != len(labels):
+        print(f"", flush=True)
+        print(f"CRITICAL ERROR ON LISTS SIZES (" + len(images) + " != " + len(labels) + ")")
+    
+    print(f"", flush=True)
+    print(f"ENDED LOADING!")
+    print(f"", flush=True)
+    return (images, labels)
 
 
 def get_model():
@@ -67,8 +100,31 @@ def get_model():
     `input_shape` of the first layer is `(IMG_WIDTH, IMG_HEIGHT, 3)`.
     The output layer should have `NUM_CATEGORIES` units, one for each category.
     """
-    raise NotImplementedError
+    # We initiate the sequential model
+    seq_model = tf.keras.models.Sequential()
 
+    seq_model.add(tf.keras.layers.Conv2D(NUM_CATEGORIES/2, (3, 3), activation="elu", input_shape=(IMG_WIDTH, IMG_HEIGHT, 3)))
+    seq_model.add(tf.keras.layers.MaxPooling2D(pool_size=(2, 2)))
+
+    seq_model.add(tf.keras.layers.Conv2D(NUM_CATEGORIES, (3, 3), activation="elu"))
+    seq_model.add(tf.keras.layers.MaxPooling2D(pool_size=(2, 2)))
+
+    seq_model.add(tf.keras.layers.Conv2D(NUM_CATEGORIES*2, (3, 3), activation="elu"))
+    seq_model.add(tf.keras.layers.MaxPooling2D(pool_size=(2, 2)))
+    
+
+    # Flattener
+    seq_model.add(tf.keras.layers.Flatten())
+
+    # Add the dropout
+    seq_model.add(tf.keras.layers.Dropout(TEST_SIZE))
+
+    # Set output layer to NUM_CATEGORIES
+    seq_model.add(tf.keras.layers.Dense(NUM_CATEGORIES, activation="softmax"))
+
+    seq_model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+
+    return seq_model
 
 if __name__ == "__main__":
     main()
