@@ -101,7 +101,11 @@ class NimAI():
         Return the Q-value for the state `state` and the action `action`.
         If no Q-value exists yet in `self.q`, return 0.
         """
-        raise NotImplementedError
+        try:
+            q_value = self.q[(tuple(state), action)]
+        except KeyError:
+            q_value = 0
+        return 0 if q_value is None else q_value
 
     def update_q_value(self, state, action, old_q, reward, future_rewards):
         """
@@ -118,7 +122,7 @@ class NimAI():
         `alpha` is the learning rate, and `new value estimate`
         is the sum of the current reward and estimated future rewards.
         """
-        raise NotImplementedError
+        self.q[(tuple(state), action)] = old_q + self.alpha * (reward + future_rewards - old_q)
 
     def best_future_reward(self, state):
         """
@@ -130,7 +134,20 @@ class NimAI():
         Q-value in `self.q`. If there are no available actions in
         `state`, return 0.
         """
-        raise NotImplementedError
+        # Fetch all possible actions from the state
+        actions = Nim.available_actions(state)
+        highest_q_value = 0
+        # Get the highest Q value of all the actions
+        for action in actions:
+            try:
+                q_value = self.q[(tuple(state), action)]
+            except KeyError:
+                q_value = 0
+            if int(q_value) > highest_q_value:
+                # If higher, we update the q_value
+                highest_q_value = q_value
+        # Return the highest value found (0 if there weren't any)
+        return highest_q_value
 
     def choose_action(self, state, epsilon=True):
         """
@@ -147,7 +164,28 @@ class NimAI():
         If multiple actions have the same Q-value, any of those
         options is an acceptable return value.
         """
-        raise NotImplementedError
+        # If epsilon is true, we "flip" the coin and see if we return a random action or not
+        if epsilon is True:
+            seed = random.random()
+            # We flip the coin
+            if self.epsilon < seed:
+                # If it happens, we return a random state
+                return random.choice(list(Nim.available_actions(state)))
+                # Else, we get the one with the highest Q_value
+
+        highest_q_value = 0
+        chosen_action = None
+        available_actions = Nim.available_actions(state)
+        for action in available_actions:
+            try:
+                q_value = self.q[(tuple(state), action)]
+            except KeyError:
+                q_value = 0
+            if int(q_value) > highest_q_value:
+                highest_q_value = q_value
+                chosen_action = action
+        
+        return chosen_action if chosen_action is not None else action 
 
 
 def train(n):
