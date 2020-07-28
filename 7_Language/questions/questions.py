@@ -7,7 +7,7 @@ import math
 from num2words import num2words
 
 FILE_MATCHES = 1
-SENTENCE_MATCHES = 2
+SENTENCE_MATCHES = 1
 
 
 def main():
